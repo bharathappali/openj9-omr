@@ -1667,3 +1667,20 @@ omrsysinfo_cgroup_is_memlimit_set(struct OMRPortLibrary *portLibrary)
 {
 	return FALSE;
 }
+int32_t
+omrsysinfo_cgroup_is_running_in_container(struct OMRPortLibrary *portLibrary, BOOLEAN *inContainer)
+{
+	return OMRPORT_ERROR_SYSINFO_CGROUP_UNSUPPORTED_PLATFORM;
+}
+
+int32_t
+omrsysinfo_cgroup_get_cpuquota(struct OMRPortLibrary *portLibrary, int32_t *cpusQuota)
+{
+	return OMRPORT_ERROR_SYSINFO_CGROUP_UNSUPPORTED_PLATFORM;
+}
+
+int32_t
+omrsysinfo_cgroup_get_cpusets(struct OMRPortLibrary *portLibrary, int32_t *cpusetsCount, char *cpusets)
+{
+	return OMRPORT_ERROR_SYSINFO_CGROUP_UNSUPPORTED_PLATFORM;
+}

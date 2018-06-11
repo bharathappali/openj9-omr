@@ -176,7 +176,6 @@ uintptr_t Get_Number_Of_CPUs();
 
 /* For the omrsysinfo_env_iterator */
 extern char **environ;
-
 static uintptr_t copyEnvToBuffer(struct OMRPortLibrary *portLibrary, void *args);
 static uintptr_t copyEnvToBufferSignalHandler(struct OMRPortLibrary *portLib, uint32_t gpType, void *gpInfo, void *unUsed);
 
@@ -308,7 +307,8 @@ struct {
 	uint64_t flag;
 } supportedSubsystems[] = {
 	{ "cpu", OMR_CGROUP_SUBSYSTEM_CPU },
-	{ "memory", OMR_CGROUP_SUBSYSTEM_MEMORY }
+	{ "memory", OMR_CGROUP_SUBSYSTEM_MEMORY },
+	{ "cpuset", OMR_CGROUP_SUBSYSTEM_CPUSET }
 };
 
 static uint32_t attachedPortLibraries;
@@ -3839,7 +3839,52 @@ _end:
 	return rc;
 }
 
+<<<<<<< HEAD
 #endif /* defined(LINUX) && !defined(OMRZTPF) */
+=======
+static int32_t
+getCgroupCPUQuota(struct OMRPortLibrary *portLibrary, int32_t *cpusQuota)
+{
+	int32_t rc = 0;
+	int64_t cpuQuota = 0;
+	uint64_t cpuPeriod = 0;
+	int32_t numItemsToRead = 1; /* cpu.cfs_quota_us and cpu.cfs_period_us files each contain only one integer value */
+
+	rc = readCgroupSubsystemFile(portLibrary, OMR_CGROUP_SUBSYSTEM_CPU, "cpu.cfs_quota_us", numItemsToRead, "%ld", &cpuQuota);
+	if (0 == rc) {
+		if(cpuQuota > 0) {
+			rc = readCgroupSubsystemFile(portLibrary, OMR_CGROUP_SUBSYSTEM_CPU, "cpu.cfs_period_us", numItemsToRead, "%lu", &cpuPeriod);
+			if (0 == rc) {
+				int32_t numCpusQuota = (int32_t) (((double) cpuQuota / cpuPeriod) + 0.5);
+				if ( 0 == numCpusQuota ) {
+					numCpusQuota = 1;
+				}
+				*cpusQuota = numCpusQuota;
+			}
+		}else{
+			rc = OMRPORT_ERROR_SYSINFO_CGROUP_CPUQUOTA_NOT_SET;
+		}
+	}
+	return rc;
+}
+
+static int32_t
+getCgroupCpuSet(struct OMRPortLibrary *portLibrary, int32_t *cpusetCount, char *cpusets)
+{
+	int32_t rc = 0;
+	char *result_cpusets = "";
+	int32_t result_cpusetcount = 0;
+	int32_t numItemsToRead = 1;
+	rc = readCgroupSubsystemFile(portLibrary, OMR_CGROUP_SUBSYSTEM_CPUSET, "cpuset.cpus", numItemsToRead, "%s", &result_cpusets);
+	if (0 == rc) {
+		result_cpusets = cpusets;
+	}
+	*cpusetCount = result_cpusetcount;
+	return rc;
+}
+
+#endif /* defined(LINUX) */
+>>>>>>> Added Apis for cgroup cpuquota, is in container
 
 BOOLEAN
 omrsysinfo_cgroup_is_system_available(struct OMRPortLibrary *portLibrary)
@@ -3985,6 +4030,45 @@ omrsysinfo_cgroup_is_memlimit_set(struct OMRPortLibrary *portLibrary)
 #endif /* defined(LINUX) && !defined(OMRZTPF) */
 }
 
+int32_t
+omrsysinfo_cgroup_is_running_in_container(struct OMRPortLibrary *portLibrary, BOOLEAN *inContainer)
+{
+	int32_t rc = 0;
+	BOOLEAN result_incontainer = FALSE; 
+#if defined(LINUX) && !defined(OMRZTPF)
+	rc = isRunningInContainer(portLibrary, &result_incontainer);
+	*inContainer =  result_incontainer;
+	return rc;
+#else
+	*inContainer = FALSE;
+	return rc;
+#endif
+}
+
+int32_t
+omrsysinfo_cgroup_get_cpuquota(struct OMRPortLibrary *portLibrary, int32_t *cpusQuota)
+{
+	int32_t rc = OMRPORT_ERROR_SYSINFO_CGROUP_UNSUPPORTED_PLATFORM;
+
+#if defined(LINUX) && !defined(OMRZTPF)
+	rc = getCgroupCPUQuota(portLibrary, cpusQuota);
+#endif /* defined(LINUX) && !defined(OMRZTPF) */
+
+	return rc;
+}
+
+int32_t
+omrsysinfo_cgroup_get_cpusets(struct OMRPortLibrary *portLibrary, int32_t *cpusetsCount, char *cpusets)
+{
+	int32_t rc = OMRPORT_ERROR_SYSINFO_CGROUP_UNSUPPORTED_PLATFORM;
+
+#if defined(LINUX) && !defined(OMRZTPF)
+	rc = getCgroupCpuSet(portLibrary, cpusetsCount, cpusets);
+#endif /* defined(LINUX) && !defined(OMRZTPF) */
+
+	return rc;
+}
+
 #if defined(OMRZTPF)
 /*
  *	Return the number of I-streams ("processors", as called by other
@@ -3998,7 +4082,7 @@ get_IPL_IstreamCount( void ) {
 	return (uintptr_t)numberOfIStreams;
 }
 
- /*
+/*
  *      Return the number of I-streams ("processors", as called by other
  *      systems) in an unsigned integer as detect at Process Dispatch time.
  */
