@@ -4034,22 +4034,20 @@ int32_t
 omrsysinfo_cgroup_is_running_in_container(struct OMRPortLibrary *portLibrary, BOOLEAN *inContainer)
 {
 	int32_t rc = 0;
-	BOOLEAN result_incontainer = FALSE; 
+	Assert_PRT_true(NULL != inContainer);
+	*inContainer = FALSE; 
 #if defined(LINUX) && !defined(OMRZTPF)
-	rc = isRunningInContainer(portLibrary, &result_incontainer);
-	*inContainer =  result_incontainer;
+	rc = isRunningInContainer(portLibrary, inContainer);
 	return rc;
-#else
-	*inContainer = FALSE;
+#endif /* defined(LINUX) && !defined(OMRZTPF) */
 	return rc;
-#endif
 }
 
 int32_t
 omrsysinfo_cgroup_get_cpuquota(struct OMRPortLibrary *portLibrary, int32_t *cpusQuota)
 {
 	int32_t rc = OMRPORT_ERROR_SYSINFO_CGROUP_UNSUPPORTED_PLATFORM;
-
+	Assert_PRT_true(NULL != cpusQuota);
 #if defined(LINUX) && !defined(OMRZTPF)
 	rc = getCgroupCPUQuota(portLibrary, cpusQuota);
 #endif /* defined(LINUX) && !defined(OMRZTPF) */
