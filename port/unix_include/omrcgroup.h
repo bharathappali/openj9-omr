@@ -24,13 +24,6 @@
 
 #if defined(LINUX)
 
-typedef struct OMRCgroupEntry {
-	int32_t hierarchyId; /**< cgroup hierarch ID*/
-	char *subsystem; /**< name of the subsystem*/
-	char *cgroup; /**< name of the cgroup*/
-	struct OMRCgroupEntry *next; /**< pointer to next OMRCgroupEntry*/
-} OMRCgroupEntry;
-
 /**
  * Stores memory usage statistics of the cgroup. These stats are collected from the files present
  * in memory resource controller of the cgroup.

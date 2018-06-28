@@ -308,12 +308,12 @@ struct {
 	uint64_t flag;
 } supportedSubsystems[] = {
 	{ "cpu", OMR_CGROUP_SUBSYSTEM_CPU },
-	{ "memory", OMR_CGROUP_SUBSYSTEM_MEMORY }
+	{ "memory", OMR_CGROUP_SUBSYSTEM_MEMORY },
+	{ "cpuset", OMR_CGROUP_SUBSYSTEM_CPUSET}
 };
 
 static uint32_t attachedPortLibraries;
 static omrthread_monitor_t cgroupEntryListMonitor;
-
 #endif /* defined(LINUX) */
 
 static intptr_t cwdname(struct OMRPortLibrary *portLibrary, char **result);
@@ -346,7 +346,7 @@ static uint64_t getPhysicalMemory();
 static BOOLEAN isCgroupV1Available(struct OMRPortLibrary *portLibrary);
 static void freeCgroupEntries(struct OMRPortLibrary *portLibrary, OMRCgroupEntry *cgEntryList);
 static char * getCgroupNameForSubsystem(struct OMRPortLibrary *portLibrary, OMRCgroupEntry *cgEntryList, const char *subsystem);
-static int32_t addCgroupEntry(struct OMRPortLibrary *portLibrary, OMRCgroupEntry **cgEntryList, int32_t hierId, const char *subsystem, const char *cgroupName);
+static int32_t addCgroupEntry(struct OMRPortLibrary *portLibrary, OMRCgroupEntry **cgEntryList, int32_t hierId, const char *subsystem, const char *cgroupName, uint64_t flag);
 static int32_t readCgroupFile(struct OMRPortLibrary *portLibrary, int pid, BOOLEAN inContainer, OMRCgroupEntry **cgroupEntryList, uint64_t *availableSubsystems);
 static OMRCgroupSubsystem getCgroupSubsystemFromFlag(uint64_t subsystemFlag);
 static int32_t  getHandleOfCgroupSubsystemFile(struct OMRPortLibrary *portLibrary, uint64_t subsystemFlag, const char *fileName, FILE **subsystemFile);
@@ -3663,7 +3663,7 @@ _end:
  * @return 0 on success, negative error code on failure
  */
 static int32_t
-addCgroupEntry(struct OMRPortLibrary *portLibrary, OMRCgroupEntry **cgEntryList, int32_t hierId, const char *subsystem, const char *cgroupName)
+addCgroupEntry(struct OMRPortLibrary *portLibrary, OMRCgroupEntry **cgEntryList, int32_t hierId, const char *subsystem, const char *cgroupName, uint64_t flag)
 {
 	int32_t rc = 0;
 	int32_t cgEntrySize = sizeof(OMRCgroupEntry) + strlen(subsystem) + 1 + strlen(cgroupName) + 1;
@@ -3679,6 +3679,7 @@ addCgroupEntry(struct OMRPortLibrary *portLibrary, OMRCgroupEntry **cgEntryList,
 	strcpy(cgEntry->subsystem, subsystem);
 	cgEntry->cgroup = cgEntry->subsystem + strlen(subsystem) + 1;
 	strcpy(cgEntry->cgroup, cgroupName);
+	cgEntry->flag = flag;
 
 	if (NULL == *cgEntryList) {
 		*cgEntryList = cgEntry;
@@ -3792,7 +3793,7 @@ readCgroupFile(struct OMRPortLibrary *portLibrary, int pid, BOOLEAN inContainer,
 					if (TRUE == inContainer) {
 						cgroupToUse = ROOT_CGROUP;
 					}
-					rc = addCgroupEntry(portLibrary, &cgEntryList, hierId, cursor, cgroupToUse);
+					rc = addCgroupEntry(portLibrary, &cgEntryList, hierId, cursor, cgroupToUse, supportedSubsystems[i].flag);
 					if (0 != rc) {
 						goto _end;
 					}
@@ -3840,6 +3841,8 @@ getCgroupSubsystemFromFlag(uint64_t subsystemFlag)
 		return CPU;
 	case OMR_CGROUP_SUBSYSTEM_MEMORY:
 		return MEMORY;
+	case OMR_CGROUP_SUBSYSTEM_CPUSET:
+		return CPUSET;
 	default:
 		Trc_PRT_Assert_ShouldNeverHappen();
 	}
@@ -4214,6 +4217,40 @@ omrsysinfo_cgroup_is_memlimit_set(struct OMRPortLibrary *portLibrary)
 	return FALSE;
 #endif /* defined(LINUX) && !defined(OMRZTPF) */
 }
+
+int32_t
+omrsysinfo_get_handle_cgroup_subsystem_file(struct OMRPortLibrary *portLibrary,  uint64_t subsystemFlag, const char *fileName, FILE **file)
+{
+	int32_t rc = OMRPORT_ERROR_SYSINFO_CGROUP_UNSUPPORTED_PLATFORM;
+#if defined(LINUX) && !defined(OMRZTPF)
+	rc = getHandleOfCgroupSubsystemFile(portLibrary, subsystemFlag, fileName, file);
+#endif /* defined(LINUX) && !defined(OMRZTPF) */
+	return rc;
+}
+
+OMRCgroupEntry *
+omrsysinfo_get_cgroup_entry_list(struct OMRPortLibrary *portLibrary)
+{
+#if defined(LINUX) && !defined(OMRZTPF)
+	return PPG_cgroupEntryList;
+#else
+	return NULL;
+#endif 
+}
+
+int32_t
+omrsysinfo_is_running_in_container(struct OMRPortLibrary *portLibrary, BOOLEAN *inContainer)
+{
+	int32_t rc = 0;
+	Assert_PRT_true(NULL != inContainer);
+	*inContainer = FALSE;
+#if defined(LINUX) && !defined(OMRZTPF)
+	rc = isRunningInContainer(portLibrary, inContainer);
+	return rc;
+#endif /* defined(LINUX) && !defined(OMRZTPF) */
+	return rc;
+}
+
 
 #if defined(OMRZTPF)
 /*

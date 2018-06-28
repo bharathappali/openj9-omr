@@ -1671,3 +1671,20 @@ omrsysinfo_cgroup_is_memlimit_set(struct OMRPortLibrary *portLibrary)
 {
 	return FALSE;
 }
+
+int32_t
+omrsysinfo_get_handle_cgroup_subsystem_file(struct OMRPortLibrary *portLibrary,  uint64_t subsystemFlag, const char *fileName, FILE **file)
+{
+	return OMRPORT_ERROR_SYSINFO_CGROUP_UNSUPPORTED_PLATFORM;
+}
+
+OMRCgroupEntry *
+omrsysinfo_get_cgroup_entry_list(struct OMRPortLibrary *portLibrary){
+	return NULL;
+}
+
+int32_t
+omrsysinfo_is_running_in_container(struct OMRPortLibrary *portLibrary, BOOLEAN *inContainer)
+{
+	return OMRPORT_ERROR_SYSINFO_CGROUP_UNSUPPORTED_PLATFORM;
+}
