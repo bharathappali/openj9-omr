@@ -4035,7 +4035,7 @@ omrsysinfo_cgroup_is_running_in_container(struct OMRPortLibrary *portLibrary, BO
 {
 	int32_t rc = 0;
 	Assert_PRT_true(NULL != inContainer);
-	*inContainer = FALSE; 
+	*inContainer = FALSE;
 #if defined(LINUX) && !defined(OMRZTPF)
 	rc = isRunningInContainer(portLibrary, inContainer);
 	return rc;
