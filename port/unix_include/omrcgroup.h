@@ -23,7 +23,6 @@
 #define omrcgroup_h
 
 #if defined(LINUX)
-
 /**
  * Stores memory usage statistics of the cgroup. These stats are collected from the files present
  * in memory resource controller of the cgroup.
@@ -38,7 +37,6 @@ typedef struct OMRCgroupMemoryInfo {
 	uint64_t memoryAndSwapUsage; /**< current memory + swap usage in bytes (as in memory.memsw.usage_in_bytes file) */
 	uint64_t cached; /**< page cache memory (as in memory.stat file)*/
 } OMRCgroupMemoryInfo;
-
 #endif /* defined(LINUX) */
 
 #endif /* omrcgroup_h */
